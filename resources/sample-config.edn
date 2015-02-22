@@ -1,0 +1,3 @@
+{:token "Your api token"
+ :bot "Your bot name"
+ :slack-host ""}
