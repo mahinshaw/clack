@@ -17,6 +17,15 @@
   "Configuration file for clack"
   (-> "config.edn" io/resource slurp edn/read-string))
 
+(def conn-settings (atom {}))
+(def ws-connection (atom nil))
+
+(defn send-message [msg]
+  (when (= nil @ws-connection)
+    (create-ws-client (:token config) ws-connection conn-settings))
+  (send-slack-message ws-connection msg))
+
 (defroutes slack-routes
   (GET "/chsk" req (ring-ajax-get-or-ws-handshake req))
   (POST "/chsk" req (ring-ajax-post req)))
+

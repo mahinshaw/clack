@@ -7,6 +7,7 @@
                  [org.clojure/clojure "1.6.0"]
                  [org.clojure/core.async "0.1.346.0-17112a-alpha"]
                  [compojure "1.3.2"]
+                 [aleph "0.4.0-beta3"]
                  [http-kit "2.1.18"]
                  [com.taoensso/sente "1.3.0"]
                  [cheshire "5.4.0"]
