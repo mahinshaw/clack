@@ -8,8 +8,7 @@
                  [org.clojure/core.async "0.1.346.0-17112a-alpha"]
                  [compojure "1.3.2"]
                  [aleph "0.4.0-beta3"]
-                 [http-kit "2.1.18"]
-                 [com.taoensso/sente "1.3.0"]
+                 [org.craigandera/eliza-clj "0.1.0"]
                  [cheshire "5.4.0"]
                  [prone "0.8.0"]])
 
