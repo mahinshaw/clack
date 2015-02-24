@@ -44,12 +44,6 @@
 (defn slack-authenticate [token]
   (aleph-get "https://slack.com/api/rtm.start" token))
 
-(defn create-ws-client [token ws-connection conn-settings]
-  (reset! conn-settings (slack-authenticate token))
-  (let [ws-url (:url @conn-settings)]
-    (reset! ws-connection (http/websocket-client ws-url {:insecure? false}))
-    (authenticated? ws-connection)))
-
 (defn authenticated? [connection]
   (when (= nil @connection)
     false)
@@ -57,6 +51,16 @@
         resp @(s/take! ws-client)
         resp-map (json/parse-string resp true)]
     (not= (:type resp-map) "error")))
+
+(defn consumer [data]
+  (println (str @data)))
+
+(defn create-ws-client [token ws-connection conn-settings]
+  (reset! conn-settings (slack-authenticate token))
+  (let [ws-url (:url @conn-settings)]
+    (reset! ws-connection (http/websocket-client ws-url {:insecure? false}))
+    (s/consume consumer @ws-connection)
+    (authenticated? ws-connection)))
 
 (defn send-slack-message [connection msg]
   (let [ws-client @@connection]
