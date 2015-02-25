@@ -19,6 +19,9 @@
 (def conn-settings (atom {}))
 (def ws-connection (atom nil))
 
+(defn self-settings []
+  (:self @conn-settings))
+
 (defn get-users []
   (:users @conn-settings))
 
@@ -78,6 +81,17 @@
     [(-> to construct-at replace-at) (strip-at txt)]
     [nil txt]))
 
+(defn slack-message-map
+  ([msg]
+   ;; TODO: define a function that gets a default channel to respond too.
+   (slack-message-map "message" msg "C03Q8VDHQ"))
+  ([type msg channel]
+   {:type type :id (str (swap! message-id inc)) :text (str msg) :channel channel}))
+
+(defn send-slack-message [connection msg-map]
+  (when-let [ws-client @@connection]
+    (s/put! ws-client (json/generate-string msg-map))))
+
 (defn respond-msg
   "Responds to message event type."
   [msg]
@@ -106,5 +120,30 @@
         "message" (respond-msg recv)
         "hello"))))
 
+(defn set-connection []
+  (do (reset! conn-settings (slack-authenticate (:token config)))
+      (reset! ws-connection (get-ws-connection (:url @conn-settings)))))
+
+(defn on-closed
+  "Handler to reinitialize the connection when it closes"
+  []
+  (set-connection)
+  (s/consume consumer @@ws-connection))
+
+(defn setup-connection-handlers
+  "Registers handlers for connection."
+  [conn consumer on-closed]
+  (s/consume consumer @conn)
+  (s/on-closed @conn on-closed))
+
 (defn start-client []
-  (create-ws-client (:token config) ws-connection conn-settings consumer))
+  (do
+    (set-connection)
+    (setup-connection-handlers @ws-connection consumer on-closed)))
+
+(defn stop-client
+  "Sets the on-close event to nil, and closes the connection."
+  []
+  (do
+    (s/on-closed @@ws-connection nil)
+    (s/close! @@ws-connection)))

@@ -1,6 +1,5 @@
 (ns clack.clack-util.http
   (:require [aleph.http :as http]
-            [manifold.stream :as s]
             [byte-streams :as bs]
             [cheshire.core :as json]))
 
@@ -12,23 +11,21 @@
 
 (def message-id (atom 1))
 
-(defn slack-authenticate [token]
-  (http-get "https://slack.com/api/rtm.start" {:query-params {:token token}}))
+(defn slack-authenticate
+  "Handle authentication with slack api."
+  [token]
+  (let [resp (http-get "https://slack.com/api/rtm.start" {:query-params {:token token}})]
+    (if (:ok resp)
+      (do
+        (println "Authenticated")
+        resp)
+      (case (:error resp)
+        ;; Handle logging and looping here.
+        "migration_in_progress" (println "Migration in progress")
+        "not_authed" (println "Not authorized")
+        "invalid_auth" (println "Invalid Authorization")
+        "account_inactive" (println "Bad account")))))
 
-(defn create-ws-client [token ws-connection conn-settings consumer]
-  (reset! conn-settings (slack-authenticate token))
-  (when-let [ws-url (:url @conn-settings)]
-    (do
-      (reset! ws-connection (http/websocket-client ws-url {:insecure? false}))
-      (s/consume consumer @@ws-connection))))
-
-(defn slack-message-map
-  ([msg]
-   ;; TODO: define a function that gets a default channel to respond too.
-   (slack-message-map "message" msg "C03Q8VDHQ"))
-  ([type msg channel]
-   {:type type :id (str (swap! message-id inc)) :text (str msg) :channel channel}))
-
-(defn send-slack-message [connection msg-map]
-  (when-let [ws-client @@connection]
-    (s/put! ws-client (json/generate-string msg-map))))
+(defn get-ws-connection [url]
+  "Returns a websocket client connection based on a url."
+  (http/websocket-client url {:insecure? false}))
