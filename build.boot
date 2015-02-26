@@ -10,10 +10,23 @@
                  [aleph "0.4.0-beta3"]
                  [org.craigandera/eliza-clj "0.1.0"]
                  [cheshire "5.4.0"]
+
+                 [com.taoensso/timbre "3.4.0"]
                  [prone "0.8.0"]])
 
 (require
- '[pandeiro.boot-http :refer [serve]])
+ '[pandeiro.boot-http :refer [serve]]
+ '[clack.slack :refer [start-client stop-client]])
+
+(deftask start-clack
+  "Start the clack client"
+  []
+  (start-client))
+
+(deftask stop-clack
+  "Stop the clack client"
+  []
+  (stop-client))
 
 (deftask dev
   [p port PORT int "Optional port for serve"]

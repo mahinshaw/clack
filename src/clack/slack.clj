@@ -127,6 +127,7 @@
 (defn on-closed
   "Handler to reinitialize the connection when it closes"
   []
+  (println "Reset the connection")
   (set-connection)
   (s/consume consumer @@ws-connection))
 
@@ -144,6 +145,12 @@
 (defn stop-client
   "Sets the on-close event to nil, and closes the connection."
   []
-  (do
-    (s/on-closed @@ws-connection nil)
-    (s/close! @@ws-connection)))
+  (loop []
+    (println "Trying to close")
+    (s/close! @@ws-connection)
+    (if-not (s/closed? @@ws-connection)
+      (do
+        (println "Still not closed.")
+        (recur))
+      (println "Closed."))))
+
