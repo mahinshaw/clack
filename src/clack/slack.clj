@@ -32,10 +32,6 @@
          {:id id :user-id user})
        (:ims @conn-settings)))
 
-;; (defn get-user-id [user]
-;;   (when-let [users (get-users)]
-;;     ()))
-
 (defn user->DM
   "Take a user id and return a direct channel"
   [user]
@@ -57,8 +53,11 @@
   (= (:bot config)
      (get-user user-id)))
 
-(defn direct-with-user? [channel user-name]
-  (= channel (-> user-name get-user-id user->DM)))
+(defn direct-with-user? [channel user-id]
+  (some #(and
+          (= channel (:id %))
+          (= user-id (:user-id %)))
+        (direct-chat-ids)))
 
 (defn construct-at [txt]
   (let [at (str/replace txt #"[\<\>\:]" "")]
@@ -99,16 +98,18 @@
          :as msg-map
          :or {hidden false}} msg]
     (when-not hidden
-      (when (direct-with-user? channel (:bot config))
-        (send-slack-message
-             ws-connection
-             (slack-message-map type (str (direct-at user) " " (talk->Doctor text)) channel)))
       (when-not (is-clack? user)
+        ;; Handle ELIZA responses.
+        ;; They should only refer to direct contact with slack, either via @clack or direct channel "D03..."
         (let [[to txt] (directed-text text)]
-          (when to
+          (if to
             (send-slack-message
              ws-connection
-             (slack-message-map type (str (direct-at user) " " (talk->Doctor txt)) channel))))))))
+             (slack-message-map type (str (direct-at user) " " (talk->Doctor txt)) channel))
+            (when (direct-with-user? channel user)
+              (send-slack-message
+               ws-connection
+               (slack-message-map type (talk->Doctor text) channel)))))))))
 
 (defn consumer
   "Take some data, parse it and return response if necessary"
