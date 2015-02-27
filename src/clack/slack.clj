@@ -37,21 +37,30 @@
   [user]
   (find-first #(= user (:user-id %)) (direct-chat-ids)))
 
-(defn get-user [user-id]
+(defn get-name [id key]
   (:name (find-first
-          #(= user-id (:id %))
-          (:users @conn-settings))))
+          #(= id (:id %))
+          (get @conn-settings key))))
+
+(defn get-id [val val-key group-key]
+  (:id (find-first
+        #(= val (get % val-key))
+        (get @conn-settings group-key))))
+
+(defn get-user-name [user-id]
+  (get-name user-id :users))
 
 (defn get-user-id [user-name]
-  (:id (find-first
-        #(= user-name (:name %))
-        (:users @conn-settings))))
+  (get-id user-name :name :users))
+
+(defn get-chan-name [chan-id]
+  (get-name chan-id :channels))
 
 (defn is-clack?
   "Takes a user id and returns true if it is this bot."
   [user-id]
   (= (:bot config)
-     (get-user user-id)))
+     (get-user-name user-id)))
 
 (defn direct-with-user? [channel user-id]
   (some #(and
@@ -68,10 +77,13 @@
 
 (defn replace-at [txt]
   (let [id (str/replace txt #"[\@\:]" "")]
-    (str "@" (get-user id) ":")))
+    (str "@" (get-user-name id) ":")))
 
-(defn direct-at [user-id]
-  (str "<@" (get-user user-id) ">:"))
+(defn direct-at-user [user-id]
+  (str "<@" user-id "|" (get-user-name user-id) ">:"))
+
+(defn direct-at-channel [chan-id]
+  (str "<@" chan-id "|" (get-chan chan-id) ">:"))
 
 (def test-string "<@U03PGH4PL> hello")
 (def test-string2 "<@U03PGH4PL>: hello")
@@ -105,7 +117,7 @@
           (if to
             (send-slack-message
              ws-connection
-             (slack-message-map type (str (direct-at user) " " (talk->Doctor txt)) channel))
+             (slack-message-map type (str (direct-at-user user) " " (talk->Doctor txt)) channel))
             (when (direct-with-user? channel user)
               (send-slack-message
                ws-connection
