@@ -15,6 +15,7 @@
                  [prone "0.8.0"]
 
                  ;; clojurescript
+                 [reagent "0.5.0-alpha3"]
                  [org.omcljs/om "0.8.8"]
                  [racehub/om-bootstrap "0.4.0"]
                  ]
@@ -54,7 +55,7 @@
            :source-map true)
      (wait))))
 
-(deftask om
+(deftask ui
   [p port PORT int "Optional port for serve"]
   (let [prt (or port 3000)]
     (comp
@@ -65,7 +66,8 @@
      (speak)
      (reload)
      (cljs-repl)
-     (cljs :output-to "public/js/main.js"
+     (cljs :preamble ["reagent/react.js"]
+           :output-to "public/js/main.js"
            :optimizations :none
            :source-map true)
      )))
