@@ -1,6 +1,7 @@
 (ns clack.server
   (:require [clojure.string :refer [escape]]
             [clojure.pprint :refer [pprint]]
+            [clojure.java.io :as io]
             [prone.middleware :refer [wrap-exceptions]]))
 
 (defn html-escape [string]
@@ -30,6 +31,11 @@
           response (handler request)
           resp (http-print response "response")]
       (update-in response [:body] (fn [body] (str req body resp))))))
+
+(defn om-handler
+  {:status 200
+   :headers {"Content-Type" "text/html"}
+   :body (str "hello")})
 
 (def app
   (-> handler

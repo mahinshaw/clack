@@ -83,7 +83,7 @@
   (str "<@" user-id "|" (get-user-name user-id) ">:"))
 
 (defn direct-at-channel [chan-id]
-  (str "<@" chan-id "|" (get-chan chan-id) ">:"))
+  (str "<@" chan-id "|" (get-chan-name chan-id) ">:"))
 
 (def test-string "<@U03PGH4PL> hello")
 (def test-string2 "<@U03PGH4PL>: hello")
