@@ -8,6 +8,8 @@
                  ;; clojure
                  [org.clojure/core.async "0.1.346.0-17112a-alpha"]
                  [compojure "1.3.2"]
+                 [ring/ring-core "1.3.2"]
+                 [ring/ring-defaults "0.1.4"]
                  [aleph "0.4.0-beta3"]
                  [org.craigandera/eliza-clj "0.1.0"]
                  [cheshire "5.4.0"]
@@ -60,7 +62,7 @@
   (let [prt (or port 3000)]
     (comp
      (serve :port prt
-            :dir (str (get-env :target-path) "/public")
+            :handler 'clack.server/app
             :httpkit true)
      (watch)
      (speak)

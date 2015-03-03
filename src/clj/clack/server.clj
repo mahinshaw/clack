@@ -2,6 +2,10 @@
   (:require [clojure.string :refer [escape]]
             [clojure.pprint :refer [pprint]]
             [clojure.java.io :as io]
+            [compojure.core :refer [defroutes GET POST]]
+            [compojure.route :as route :refer [resources not-found]]
+            [ring.middleware.defaults :refer :all]
+            [ring.middleware.resource :refer [wrap-resource]]
             [prone.middleware :refer [wrap-exceptions]]))
 
 (defn html-escape [string]
@@ -32,14 +36,15 @@
           resp (http-print response "response")]
       (update-in response [:body] (fn [body] (str req body resp))))))
 
-(defn om-handler
-  {:status 200
-   :headers {"Content-Type" "text/html"}
-   :body (str "hello")})
+(defroutes clack-routes
+  (not-found "<h1>Nothing to see here.</h1>"))
 
 (def app
-  (-> handler
-      (wrap-spy)))
+  (let [clack-defaults (-> site-defaults
+                           (assoc-in [:static :resources] "public"))]
+    (-> clack-routes
+        (wrap-exceptions)
+        (wrap-defaults clack-defaults))))
 
 (def dev-app
   (-> app
