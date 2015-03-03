@@ -1,9 +1,11 @@
 (ns clack.server
-  (:require [clojure.string :refer [escape]]
+  (:require [clack.logging :refer :all]
+            [clojure.string :refer [escape]]
             [clojure.pprint :refer [pprint]]
             [clojure.java.io :as io]
             [compojure.core :refer [defroutes GET POST]]
             [compojure.route :as route :refer [resources not-found]]
+            [compojure.response :as resp]
             [ring.middleware.defaults :refer :all]
             [ring.middleware.resource :refer [wrap-resource]]
             [prone.middleware :refer [wrap-exceptions]]))
@@ -37,6 +39,9 @@
       (update-in response [:body] (fn [body] (str req body resp))))))
 
 (defroutes clack-routes
+  (GET "/" [] (slurp (io/resource "public/index.html")))
+  (GET "/req" request (http-print request "request"))
+  (resources "/")
   (not-found "<h1>Nothing to see here.</h1>"))
 
 (def app
@@ -44,6 +49,7 @@
                            (assoc-in [:static :resources] "public"))]
     (-> clack-routes
         (wrap-exceptions)
+        (wrap-spy)
         (wrap-defaults clack-defaults))))
 
 (def dev-app
