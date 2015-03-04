@@ -1,3 +1,4 @@
 .nrepl*
 resources/config.edn
 target/*
+*.log

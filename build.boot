@@ -7,6 +7,7 @@
 
                  ;; clojure
                  [org.clojure/core.async "0.1.346.0-17112a-alpha"]
+                 [org.clojure/core.match "0.3.0-alpha4"]
                  [compojure "1.3.2"]
                  [ring/ring-core "1.3.2"]
                  [ring/ring-defaults "0.1.4"]
@@ -15,12 +16,14 @@
                  [cheshire "5.4.0"]
                  [com.taoensso/timbre "3.4.0"]
                  [prone "0.8.0"]
+                 [com.taoensso/sente "1.4.0-beta1"]
+                 [org.immutant/immutant "2.0.0-beta2"]
 
                  ;; clojurescript
+                 [org.clojure/clojurescript "0.0-2913"]
                  [reagent "0.5.0-alpha3"]
-                 [org.omcljs/om "0.8.8"]
-                 [racehub/om-bootstrap "0.4.0"]
                  ]
+
  :source-paths #{"src/clj" "src/cljs"}
  :resource-paths #{"resources"}
  :target-path  "target")
@@ -30,7 +33,9 @@
  '[adzerk.boot-cljs-repl :refer [cljs-repl start-repl]]
  '[adzerk.boot-reload :refer [reload]]
  '[pandeiro.boot-http :refer [serve]]
- '[clack.slack :refer [start-client stop-client]])
+ '[clack.slack :refer [start-client stop-client]]
+ '[immutant.web :as web]
+ '[clack.server :refer [start-web-server!]])
 
 (deftask start-clack
   "Start the clack client"
@@ -42,34 +47,29 @@
   []
   (stop-client))
 
+(deftask serve-web
+  "Start an immutant server"
+  [p port PORT int "Optional port to serve"
+   d dev? bool "Run in dev mode."]
+  (let [prt (or port 3000)]
+    (start-web-server! prt)))
+
+(deftask ui
+  []
+  (comp
+   (watch)
+   (speak)
+   (reload)
+   (cljs-repl)
+   (cljs :preamble ["reagent/react.js"]
+         :output-to "public/js/main.js"
+         :optimizations :none
+         :source-map true)
+   ))
+
 (deftask dev
   [p port PORT int "Optional port for serve"]
   (let [prt (or port 3000)]
-    (comp
-     (serve :port prt
-            :handler 'clack.server/dev-app
-            :httpkit true)
-     (watch)
-     (speak)
-     (reload)
-     (cljs :output-to "public/js"
-           :optimizations :none
-           :source-map true)
-     (wait))))
-
-(deftask ui
-  [p port PORT int "Optional port for serve"]
-  (let [prt (or port 3000)]
-    (comp
-     (serve :port prt
-            :handler 'clack.server/app
-            :httpkit true)
-     (watch)
-     (speak)
-     (reload)
-     (cljs-repl)
-     (cljs :preamble ["reagent/react.js"]
-           :output-to "public/js/main.js"
-           :optimizations :none
-           :source-map true)
-     )))
+    (boot
+     (serve-web)
+     (ui))))
