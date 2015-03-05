@@ -35,7 +35,7 @@
  '[pandeiro.boot-http :refer [serve]]
  '[clack.slack :refer [start-client stop-client]]
  '[immutant.web :as web]
- '[clack.server :refer [start-web-server!]])
+ '[clack.server :refer [start-router! start-web-server!]])
 
 (deftask start-clack
   "Start the clack client"
@@ -52,6 +52,7 @@
   [p port PORT int "Optional port to serve"
    d dev? bool "Run in dev mode."]
   (let [prt (or port 3000)]
+    (start-router!)
     (start-web-server! prt)))
 
 (deftask ui
