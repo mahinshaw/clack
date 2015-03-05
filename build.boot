@@ -9,7 +9,7 @@
                  [org.clojure/core.async "0.1.346.0-17112a-alpha"]
                  [org.clojure/core.match "0.3.0-alpha4"]
                  [compojure "1.3.2"]
-                 [ring/ring-core "1.3.2"]
+                 [ring/ring-devel "1.3.2"]
                  [ring/ring-defaults "0.1.4"]
                  [aleph "0.4.0-beta3"]
                  [org.craigandera/eliza-clj "0.1.0"]
@@ -17,11 +17,16 @@
                  [com.taoensso/timbre "3.4.0"]
                  [prone "0.8.0"]
                  [com.taoensso/sente "1.4.0-beta1"]
+
+                 [com.cognitect/transit-clj "0.8.259"]
+
                  [org.immutant/immutant "2.0.0-beta2"]
+                 [http-kit "2.1.18"]
 
                  ;; clojurescript
                  [org.clojure/clojurescript "0.0-2913"]
                  [reagent "0.5.0-alpha3"]
+                 [com.cognitect/transit-cljs "0.8.199"]
                  ]
 
  :source-paths #{"src/clj" "src/cljs"}
@@ -35,7 +40,7 @@
  '[pandeiro.boot-http :refer [serve]]
  '[clack.slack :refer [start-client stop-client]]
  '[immutant.web :as web]
- '[clack.server :refer [start-router! start-web-server!]])
+ '[clack.server :refer [start!]])
 
 (deftask start-clack
   "Start the clack client"
@@ -52,8 +57,7 @@
   [p port PORT int "Optional port to serve"
    d dev? bool "Run in dev mode."]
   (let [prt (or port 3000)]
-    (start-router!)
-    (start-web-server! prt)))
+    (start! prt dev?)))
 
 (deftask ui
   []
@@ -72,5 +76,5 @@
   [p port PORT int "Optional port for serve"]
   (let [prt (or port 3000)]
     (boot
-     (serve-web)
+     (serve-web :port prt :dev? true)
      (ui))))

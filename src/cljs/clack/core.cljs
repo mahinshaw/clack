@@ -8,13 +8,14 @@
    ;; for WebSockets
    [cljs.core.async :as async :refer (<! >! put! chan)]
    [taoensso.sente :as sente :refer (cb-success?)]
-   [taoensso.encore :as encore :refer [debugf infof]])
+   [taoensso.encore :as encore :refer [debugf infof]]
+   [taoensso.sente.packers.transit :as sente-transit])
   )
 
 (enable-console-print!)
 
 ;;; Websockets
-(def packer :edn)
+(def packer (sente-transit/get-flexi-packer :edn))
 
 (let [{:keys [chsk ch-recv send-fn state]}
       (sente/make-channel-socket! "/chsk"
@@ -30,29 +31,28 @@
   (infof "Event %s" event)
   (event-msg-handler ev-msg))
 
-(do
-  (defmethod event-msg-handler :default ; Fallback
-    [{:as ev-msg :keys [event]}]
-    (js/console.log "Unhandled event: %s" (pr-str event))
-    (infof "Unhandled event: %s" event))
+(defmethod event-msg-handler :default ; Fallback
+  [{:as ev-msg :keys [event]}]
+  (js/console.log "Unhandled event: %s" (pr-str event))
+  (infof "Unhandled event: %s" event))
 
-  (defmethod event-msg-handler :chsk/state
-    [{:as ev-msg :keys [?data]}]
-    (if (= ?data {:first-open? true})
-      (js/console.log "Channel socket successfully established!")
-      (js/console.log "Channel socket state change: %s" (pr-str ?data))))
+(defmethod event-msg-handler :chsk/state
+  [{:as ev-msg :keys [?data]}]
+  (if (= ?data {:first-open? true})
+    (js/console.log "Channel socket successfully established!")
+    (js/console.log "Channel socket state change: %s" (pr-str ?data))))
 
-  (defmethod event-msg-handler :chsk/recv
-    [{:as ev-msg :keys [?data]}]
-    (js/console.log "Push event from server: %s" (pr-str ?data))
-    (infof "Push event from server: %s" ?data))
+(defmethod event-msg-handler :chsk/recv
+  [{:as ev-msg :keys [?data]}]
+  (js/console.log "Push event from server: %s" (pr-str ?data))
+  (infof "Push event from server: %s" ?data))
 
-  (defmethod event-msg-handler :chsk/handshake
-    [{:as ev-msg :keys [?data]}]
-    (let [[?uid ?csrf-token ?handshake-data] ?data]
-      (js/console.log "Handshake: %s" ?data)
-      (infof "Handshake: %s" ?data)))
-  )
+(defmethod event-msg-handler :chsk/handshake
+  [{:as ev-msg :keys [?data]}]
+  (let [[?uid ?csrf-token ?handshake-data] ?data]
+    (js/console.log "Handshake: %s" ?data)
+    (infof "Handshake: %s" ?data)))
+
 
 (def router_ (atom nil))
 
