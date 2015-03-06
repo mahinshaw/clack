@@ -1,7 +1,8 @@
 (ns clack.server
   (:require [clack.logging :refer :all]
-            [clack.websocket :refer [start-router! ring-ajax-get-or-ws-handshake ring-ajax-post]]
+            [clack.websocket :refer [start-router! ring-ajax-get-or-ws-handshake ring-ajax-post chsk-send! connected-uids]]
             [clojure.java.io :as io]
+            [clojure.core.async :as a :refer [go go-loop put! <! >! <!! >!!]]
             [compojure.core :refer [defroutes GET POST]]
             [compojure.route :as route :refer [resources not-found]]
             [immutant.web :as web]
@@ -13,7 +14,7 @@
 (defroutes clack-routes
   (GET "/" [] (slurp (io/resource "public/index.html")))
   (GET "/chsk" req (ring-ajax-get-or-ws-handshake req))
- (POST "/chsk" req (ring-ajax-post req))
+  (POST "/chsk" req (ring-ajax-post req))
   (resources "/")
   (not-found "<h1>Nothing to see here.</h1>"))
 
@@ -44,6 +45,17 @@
                 (info "Stopping Immutant...")
                 (web/stop server))}))
 
+(defn start-counter! []
+  (go-loop [i 0]
+    (<! (a/timeout 2000))
+    (infof "Sending the new count: %d" i)
+    (doseq [uid (:any @connected-uids)]
+      (chsk-send! uid
+                  [:counter/broadcast
+                   {:desc "Sending new count"
+                    :value i}]))
+    (recur (inc i))))
+
 (defonce web-server_ (atom nil))
 
 (defn stop-web-server! [] (when-let [m @web-server_] ((:stop-fn m))))
@@ -59,4 +71,5 @@
 
 (defn start! [port dev]
   (start-router!)
-  (start-web-server! port dev))
+  (start-web-server! port dev)
+  (start-counter!))

@@ -14,6 +14,9 @@
 
 (enable-console-print!)
 
+;; Socket channels
+(def data-chan (chan))
+
 ;;; Websockets
 (def packer (sente-transit/get-flexi-packer :edn))
 
@@ -33,25 +36,23 @@
 
 (defmethod event-msg-handler :default ; Fallback
   [{:as ev-msg :keys [event]}]
-  (js/console.log "Unhandled event: %s" (pr-str event))
   (infof "Unhandled event: %s" event))
 
 (defmethod event-msg-handler :chsk/state
   [{:as ev-msg :keys [?data]}]
   (if (= ?data {:first-open? true})
-    (js/console.log "Channel socket successfully established!")
-    (js/console.log "Channel socket state change: %s" (pr-str ?data))))
+    (debugf "Channel socket successfully established!")
+    (debugf "Channel socket state change: %s" ?data)))
 
 (defmethod event-msg-handler :chsk/recv
   [{:as ev-msg :keys [?data]}]
-  (js/console.log "Push event from server: %s" (pr-str ?data))
-  (infof "Push event from server: %s" ?data))
+  (put! data-chan ?data)
+  (debugf "Push event from server: %s" ?data))
 
 (defmethod event-msg-handler :chsk/handshake
   [{:as ev-msg :keys [?data]}]
   (let [[?uid ?csrf-token ?handshake-data] ?data]
-    (js/console.log "Handshake: %s" ?data)
-    (infof "Handshake: %s" ?data)))
+    (debugf "Handshake: %s" ?data)))
 
 
 (def router_ (atom nil))
@@ -62,6 +63,7 @@
   (stop-router!)
   (reset! router_ (sente/start-chsk-router! ch-chsk event-msg-handler*)))
 ;;; End WebSockets
+(def server-counter (r/atom 0))
 
 (def click-count (r/atom 0))
 
@@ -76,13 +78,20 @@
     (fn []
       (js/setTimeout #(swap! seconds-elapsed inc) 1000)
       [:div
-       "Seconds Elapsed: " @seconds-elapsed])))
+       "Seconds Elapsed: " @seconds-elapsed
+       [:br]
+       "Server Counter: " @server-counter])))
 
 (defn by-id [id]
   (.getElementById js/document id))
 
 (defn mountit []
-  (r/render [timer-component]
+  (go-loop []
+    (let [[msg data] (<! data-chan)]
+      (debugf "Event: %s Data: %s" msg data)
+      (reset! server-counter (:value data))
+      (recur)))
+  (r/render-component [timer-component]
             (by-id "clack-board")))
 
 (start-router!)

@@ -6,12 +6,19 @@
 
 (refer-logging)
 
+(defn user-id-fn
+  "Generates unique ID for request."
+  [req]
+  (let [uid (str (java.util.UUID/randomUUID))]
+    (info "Connected: " (:remote-addr req) uid)
+    uid))
+
 (def server-adapter taoensso.sente.server-adapters.immutant/immutant-adapter)
 
 (def packer (sente-transit/get-flexi-packer :edn))
 
 (let [{:keys [ch-recv send-fn ajax-post-fn ajax-get-or-ws-handshake-fn connected-uids]}
-      (sente/make-channel-socket! server-adapter {:packer packer})]
+      (sente/make-channel-socket! server-adapter {:packer packer :user-id-fn user-id-fn})]
   (def ring-ajax-post ajax-post-fn)
   (def ring-ajax-get-or-ws-handshake ajax-get-or-ws-handshake-fn)
   (def ch-chsk ch-recv) ;; Channel sockets recieve channel
@@ -27,7 +34,8 @@
   (event-msg-handler ev-msg))
 
 (defmethod event-msg-handler :chsk/ws-ping
-  [_]
+  [ev-msg]
+  (infof "Ping Message: %s" ev-msg)
   (swap! ping-counts inc))
 
 (defmethod event-msg-handler :default
