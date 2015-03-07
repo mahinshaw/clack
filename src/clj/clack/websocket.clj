@@ -34,8 +34,9 @@
   (event-msg-handler ev-msg))
 
 (defmethod event-msg-handler :chsk/ws-ping
-  [ev-msg]
-  (infof "Ping Message: %s" ev-msg)
+  [{:as ev-msg :keys [?data connected-uids]}]
+  (infof "Ping Data: %s" ?data)
+  (infof "Connection Count: %d" (count @connected-uids))
   (swap! ping-counts inc))
 
 (defmethod event-msg-handler :default

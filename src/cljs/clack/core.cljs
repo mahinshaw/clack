@@ -88,7 +88,6 @@
 (defn mountit []
   (go-loop []
     (let [[msg data] (<! data-chan)]
-      (debugf "Event: %s Data: %s" msg data)
       (reset! server-counter (:value data))
       (recur)))
   (r/render-component [timer-component]
