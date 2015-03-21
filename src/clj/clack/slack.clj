@@ -1,13 +1,10 @@
 (ns clack.slack
-  (:require [clojure.java.io :as io]
-            [clojure.core.match :refer [match]]
-            [clojure.core.async :as a :refer [chan]]
-            [clojure.edn :as edn]
+  (:require [clojure.core.match :refer [match]]
+            [clojure.core.async :as a :refer [chan go-loop <! put! timeout]]
             [clojure.string :as str]
             [cheshire.core :as json]
-            [manifold.stream :as s]
-            [clack.clack-util.http :refer :all]
-            [clack.clack-util.doctor :refer [talk->Doctor]]))
+            [clack.clack-util.doctor :refer [talk-to-doctor users-doctor]]
+            [clack.slack.connection :refer :all]))
 
 ;;; Helpers
 (defn find-first
@@ -17,10 +14,6 @@
 ;;; Helpers
 
 (def cache-limit 10)
-
-(def config
-  "Configuration file for clack"
-  (-> "config.edn" io/resource slurp edn/read-string))
 
 (def message-cache (atom []))
 
@@ -35,9 +28,6 @@
   "Takes a message and returns the json string, caching the message as a map."
   [msg]
   (-> msg add-message-to-cache json/generate-string))
-
-(def conn-settings (atom {}))
-(def ws-connection (atom nil))
 
 ;;; Channels
 (def recv-chan (chan))
@@ -125,16 +115,6 @@
   ([type msg channel]
    {:type type :id (str (swap! message-id inc)) :text (str msg) :channel channel}))
 
-(defn send-slack-message
-  "Send a message in the form of a clojure map via the given connection.
-  The connection should be a manifold stream."
-  [connection msg]
-  (clojure.pprint/pprint msg)
-  (when-let [ws-client @connection]
-    (do
-      (println (msg->json msg))
-      (s/put! ws-client (msg->json msg)))))
-
 (defn respond-message
   "Responds to message event type."
   [msg]
@@ -149,48 +129,37 @@
           (if to
             (do
               (println "Put message")
-              (a/put!
+              (put!
                send-chan
-               (slack-message-map type (str (direct-at-user user) " " (talk->Doctor txt)) channel)))
+               (slack-message-map
+                type
+                (str (direct-at-user user) " " (users-doctor user txt))
+                channel)))
             (when (direct-with-user? channel user)
               (do
                 (println "Put message")
-                (a/put!
+                (put!
                  send-chan
-                 (slack-message-map type (talk->Doctor text) channel))))))))))
+                 (slack-message-map
+                  type
+                  (users-doctor user text)
+                  channel))))))))))
 
 (defn consumer
   "Take some data, parse it and return response if necessary"
   [data]
   (let [recv (json/parse-string data true)]
     (clojure.pprint/pprint recv)
-    (a/put! recv-chan recv)))
-
-(defn set-connection []
-  (do (reset! conn-settings (slack-authenticate (:token config)))
-      (reset! ws-connection (get-ws-connection (:url @conn-settings)))))
-
-(defn on-closed
-  "Handler to reinitialize the connection when it closes"
-  []
-  (println "Reset the connection")
-  (set-connection)
-  (s/consume consumer @@ws-connection))
-
-(defn setup-connection-handlers
-  "Registers handlers for connection."
-  [conn consumer on-closed]
-  (s/consume consumer @conn)
-  (s/on-closed @conn on-closed))
+    (put! recv-chan recv)))
 
 ;; TODO: Is this necessary? Ideally this channel will send recieved messages upstream
 ;; to the dashboard etc.  But for now is it useful?
 (defn start-recv-loop
   "Loop on recieved messages"
   []
-  (a/go-loop []
+  (go-loop []
     (println "Waiting to recieve message")
-    (let [recv (a/<! recv-chan )
+    (let [recv (<! recv-chan )
           type (:type recv)]
       (println "Message Recieved")
       (case type
@@ -200,13 +169,11 @@
 
 (defn start-send-loop
   "Starts a loop with a 1 sec timeout, because the rtm limit is 1msg/sec."
-  [conn]
-  (a/go-loop []
-    (a/<! (a/timeout 1000))
-    (let [msg (a/<! send-chan)]
-      (send-slack-message
-       conn
-       msg)
+  []
+  (go-loop []
+    (<! (timeout 1000))
+    (let [msg (<! send-chan)]
+      (send-message (msg->json msg))
       (recur))))
 
 (defn start-client
@@ -214,19 +181,10 @@
   []
   (do
     (set-connection)
-    (setup-connection-handlers @ws-connection consumer on-closed)
+    (setup-connection-handlers consumer)
     (start-recv-loop)
-    (start-send-loop @ws-connection)))
+    (start-send-loop)))
 
 (defn stop-client
-  "Sets the on-close event to nil, and closes the connection."
   []
-  (loop []
-    (println "Trying to close")
-    (s/close! @@ws-connection)
-    (if-not (s/closed? @@ws-connection)
-      (do
-        (println "Still not closed.")
-        (recur))
-      (println "Closed."))))
-
+  (stop-connection))

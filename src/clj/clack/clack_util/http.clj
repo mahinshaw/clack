@@ -9,8 +9,6 @@
       bs/to-string
       (json/parse-string true)))
 
-(def message-id (atom 1))
-
 (defn slack-authenticate
   "Handle authentication with slack api."
   [token]

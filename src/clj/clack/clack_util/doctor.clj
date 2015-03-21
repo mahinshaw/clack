@@ -7,7 +7,7 @@
 
 (defn new-engine [user]
   (do
-    (swap! @engine-map user (create-engine))
+    (swap! engine-map assoc user (create-engine))
     (get @engine-map user)))
 
 (defn get-engine [user]
@@ -15,11 +15,11 @@
     eng
     (new-engine user)))
 
-(defn user->doctor
+(defn users-doctor
   [user msg]
   (-> user get-engine (process-input msg)))
 
-(defn talk->Doctor
+(defn talk-to-doctor
   "Talk to the doctor"
   [msg]
   (process-input e msg))
