@@ -11,16 +11,16 @@
                  [compojure "1.3.2"]
                  [ring/ring-devel "1.3.2"]
                  [ring/ring-defaults "0.1.4"]
-                 [aleph "0.4.0-beta3"]
+                 [aleph "0.4.0"]
                  [org.craigandera/eliza-clj "0.1.0"]
                  [cheshire "5.4.0"]
                  [com.taoensso/timbre "3.4.0"]
                  [prone "0.8.0"]
-                 [com.taoensso/sente "1.4.0-beta1"]
+                 [com.taoensso/sente "1.4.1"]
 
                  [com.cognitect/transit-clj "0.8.259"]
 
-                 [org.immutant/immutant "2.0.0-beta2"]
+                 [org.immutant/immutant "2.0.0"]
                  [http-kit "2.1.18"]
 
                  ;; clojurescript

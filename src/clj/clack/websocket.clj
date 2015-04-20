@@ -1,7 +1,7 @@
 (ns clack.websocket
   (:require [clack.logging :refer :all]
             [taoensso.sente :as sente]
-            [taoensso.sente.server-adapters.immutant]
+            [taoensso.sente.server-adapters.immutant :refer [sente-web-server-adapter]]
             [taoensso.sente.packers.transit :as sente-transit]))
 
 (refer-logging)
@@ -13,12 +13,10 @@
     (info "Connected: " (:remote-addr req) uid)
     uid))
 
-(def server-adapter taoensso.sente.server-adapters.immutant/immutant-adapter)
-
 (def packer (sente-transit/get-flexi-packer :edn))
 
 (let [{:keys [ch-recv send-fn ajax-post-fn ajax-get-or-ws-handshake-fn connected-uids]}
-      (sente/make-channel-socket! server-adapter {:packer packer :user-id-fn user-id-fn})]
+      (sente/make-channel-socket! sente-web-server-adapter {:packer packer :user-id-fn user-id-fn})]
   (def ring-ajax-post ajax-post-fn)
   (def ring-ajax-get-or-ws-handshake ajax-get-or-ws-handshake-fn)
   (def ch-chsk ch-recv) ;; Channel sockets recieve channel
