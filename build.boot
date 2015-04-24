@@ -6,9 +6,10 @@
                  [pandeiro/boot-http "0.6.2" :scope "test"]
 
                  ;; clojure
+                 [org.clojure/clojure "1.7.0-beta1"]
                  [org.clojure/core.async "0.1.346.0-17112a-alpha"]
                  [org.clojure/core.match "0.3.0-alpha4"]
-                 [compojure "1.3.2"]
+                 [compojure "1.3.3"]
                  [ring/ring-devel "1.3.2"]
                  [ring/ring-defaults "0.1.4"]
                  [aleph "0.4.0"]
@@ -20,8 +21,7 @@
 
                  [com.cognitect/transit-clj "0.8.259"]
 
-                 [org.immutant/immutant "2.0.0"]
-                 [http-kit "2.1.18"]
+                 [org.immutant/web "2.0.0"]
 
                  ;; clojurescript
                  [org.clojure/clojurescript "0.0-2913"]
@@ -45,19 +45,25 @@
 (deftask start-clack
   "Start the clack client"
   []
-  (start-client))
+  (with-pre-wrap fileset
+    (start-client)
+    fileset))
 
 (deftask stop-clack
   "Stop the clack client"
   []
-  (stop-client))
+  (with-pre-wrap fileset
+    (stop-client)
+    fileset))
 
 (deftask serve-web
   "Start an immutant server"
   [p port PORT int "Optional port to serve"
    d dev? bool "Run in dev mode."]
   (let [prt (or port 3000)]
-    (start! prt dev?)))
+    (with-pre-wrap fileset
+      (start! prt dev?)
+      fileset)))
 
 (deftask ui
   []
@@ -75,6 +81,6 @@
 (deftask dev
   [p port PORT int "Optional port for serve"]
   (let [prt (or port 3000)]
-    (boot
+    (comp
      (serve-web :port prt :dev? true)
      (ui))))
