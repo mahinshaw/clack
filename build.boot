@@ -6,10 +6,11 @@
                  [pandeiro/boot-http "0.6.2" :scope "test"]
 
                  ;; clojure
-                 [org.clojure/clojure "1.7.0-beta1"]
+                 [org.clojure/clojure "1.7.0-RC2"]
                  [org.clojure/core.async "0.1.346.0-17112a-alpha"]
                  [org.clojure/core.match "0.3.0-alpha4"]
-                 [compojure "1.3.3"]
+                 [instaparse "1.4.1"]
+                 [compojure "1.3.4"]
                  [ring/ring-devel "1.3.2"]
                  [ring/ring-defaults "0.1.4"]
                  [aleph "0.4.0"]
